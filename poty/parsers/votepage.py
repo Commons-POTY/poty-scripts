@@ -28,7 +28,7 @@ def get_voters(votetally, year, candidate):
             warn_lineignore('poty.parsers.candidates', line)
             continue
 
-        voter = get_voter(reobj.group(1))
+        voter = get_voter(reobj.group(1), votetally.voter_eligible)
         if voter is None:
             logger.warn(
                 '[[{c}]]: Drop ineligible vote from [[User:{s}]]'.format(

@@ -14,7 +14,7 @@ from poty.eligibility.candidates import FPCategorizer, VoteTally, TopCriteria
 from poty.parsers.candidates import (
     Pattern, CategorizedParser, UncategorizedParser, FPParser)
 from poty.round import Round
-from poty.sites import COMMONS
+from poty.sites import COMMONS, META
 from poty.utils.properties import cachedproperty
 
 
@@ -43,6 +43,15 @@ class POTY(int):
                 'before': pywikibot.Timestamp(self + 1, 1, 1),
                 'atleast': 75,
                 'includedeleted': False
+            }),
+            'possiblerenames': frozendict({
+                log.data['params']['olduser']: log.data['params']['newuser']
+                for log in META.logevents(
+                    'gblrename',
+                    start=pywikibot.Timestamp(self + 2, 1, 1),
+                    end=pywikibot.Timestamp(self + 1, 1, 1)
+                )
+                if 'params' in log.data  # some can be deleted
             })
         })
 

@@ -99,7 +99,7 @@ class ThreadPool(object):
 
 
 def concurrent_map(function, *argss, **kwargs):
-    n_threads = 4  # Due to GIL, too many threads break stuffs
+    n_threads = 8  # Due to GIL, too many threads break stuffs
     if kwargs:
         if tuple(kwargs) != ('n_threads'):
             raise ValueError
