@@ -35,6 +35,7 @@ def get_voters(votetally, year, candidate):
                     c=candidate.ns_title,
                     s=reobj.group(1),
                 ))
+            continue
 
         if voter in voters:
             logger.warn(
