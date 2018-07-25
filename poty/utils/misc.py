@@ -79,3 +79,20 @@ def if_redirct_get_target(page):
         if page.namespace() == 6:
             page = pywikibot.FilePage(page)
     return page
+
+
+def get_tops(dct, num=-1):
+    num = -1 if num is None else num
+    dct = collections.OrderedDict(
+        sorted(dct.items(), key=lambda i: i[1], reverse=True))
+    last_i = 0
+    last_v = None
+    for i, (key, val) in enumerate(dct.items(), 1):
+        if val != last_v:
+            last_v = val
+            last_i = i
+
+        if num >= 0 and last_i > num:
+            break
+
+        yield last_i, key

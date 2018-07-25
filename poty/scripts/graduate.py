@@ -21,7 +21,7 @@ def main(*args):
     round, nextround = poty.rounds[args.round:args.round+2]
     candidates = round.candidates.parse(round)
     candidates = nextround.candidates_eligible.process_candidates(
-        round, candidates)
+        poty, candidates)
     print(nextround.candidates.format(round, candidates))
 
 

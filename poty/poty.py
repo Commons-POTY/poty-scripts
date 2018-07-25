@@ -74,8 +74,6 @@ class POTY(int):
                         '{c[0]}|{c[1]}]] =='
                     ),
                 ),
-                voter_eligible=GLOBAL_VOTER_ELIGIBILITY,
-                maxvotes=None,
                 candidates_eligible=FPCategorizer(),
             ),
             Round(
@@ -84,47 +82,50 @@ class POTY(int):
                     page='Candidates/R2',
                     gallerysortkey=lambda c: random.random(),
                     gallerypattern=Pattern(
-                        r'^(?P<title>,[^|]+?)\|\{\{[^}]+?\}\} *'
+                        r'^(?P<title>[^|]+?)\|\{\{[^}]+?\}\} *'
                         r'(?:<!--(?P<comment>.+)-->)?$',
                         '{c.nons_title}|{{{{POTY{r.year}/votebutton|'
                         'f={c.nons_title}|base=Commons:Picture_of_the_Year/'
                         '{r.year}/R2}}}} <!--{c.comment}-->'
                     )
                 ),
-                voter_eligible=GLOBAL_VOTER_ELIGIBILITY,
-                maxvotes=3,
-                candidates_eligible=VoteTally([
+                candidates_eligible=VoteTally(
                     TopCriteria(
                         num=30,
                         key=lambda c: None,
-                        cmt=lambda *a:
-                            'Top #{i} in all categories'.format(*a),
+                        cmt='Top #{i} in all categories',
                     ),
                     TopCriteria(
                         num=2,
                         key=lambda c: c.category,
-                        cmt=lambda *a:
-                            'Top #{i} in category "{c.category[1]}"'.format(
-                                *a),
+                        cmt='Top #{i} in category "{c.category[1]}"',
                     ),
-                ]),
+                    voter_eligible=GLOBAL_VOTER_ELIGIBILITY,
+                    maxvotes=None,
+                    page='R1/v/{c}',
+                    re=r'^# *\[\[User:([^\]\|]+)(?:\|\1)\]\]$',
+                ),
             ),
             Round(
-                self, 4,
+                self, 3,
                 candidates=UncategorizedParser(
-                    gallerysortkey=lambda c: -int(
+                    gallerysortkey=lambda c: int(
                         re.search(r'#(\d+)', c.comment).group(1)),
                     gallerypattern=Pattern(
                         r'^$',  # should be unused
                         '{c.nons_title}| {c.comment}'
                     )
                 ),
-                candidates_eligible=VoteTally([
+                candidates_eligible=VoteTally(
                     TopCriteria(
                         num=None,
                         key=lambda c: None,
-                        cmt=lambda *a: '#{i}, {n} votes'.format(*a),
+                        cmt='#{i}, {n} votes',
                     ),
-                ]),
+                    voter_eligible=GLOBAL_VOTER_ELIGIBILITY,
+                    maxvotes=3,
+                    page='R2/v/{c}',
+                    re=r'^# *\[\[User:([^\]\|]+)(?:\|\1)\]\]$'
+                ),
             ),
         ]
