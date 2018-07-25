@@ -15,6 +15,7 @@ class _base_ndd_property(object):
         functools.update_wrapper(self, func)
 
     def __get__(self, obj, objtype):
+        # Bind it before calling, like how Python itself does
         return self.__func__.__get__(obj, objtype)()
 
 

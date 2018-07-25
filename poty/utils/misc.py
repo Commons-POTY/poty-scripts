@@ -3,13 +3,16 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import collections
 import functools
+import logging
 
 try:
     from _thread import get_ident
 except ImportError:
     from _dummy_thread import get_ident
 
+import pywikibot
 from six import with_metaclass
 
 
@@ -58,3 +61,21 @@ class Singleton(with_metaclass(_SingletonMeta)):
 def kwargs_setattr(obj, kwargs):
     for key, val in kwargs.items():
         setattr(obj, key, val)
+
+
+ignored_lines = collections.defaultdict(set)
+
+
+def warn_lineignore(loggername, line):
+    if line in ignored_lines[loggername]:
+        return
+    ignored_lines[loggername].add(line)
+    logging.getLogger(loggername).warn('Ignoring line: ' + line)
+
+
+def if_redirct_get_target(page):
+    if page.isRedirectPage():
+        page = page.getRedirectTarget()
+        if page.namespace() == 6:
+            page = pywikibot.FilePage(page)
+    return page

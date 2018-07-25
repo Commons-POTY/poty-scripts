@@ -21,3 +21,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Pywikibot
+apicache*
+throttle.ctrl
