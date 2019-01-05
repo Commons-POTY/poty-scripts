@@ -22,7 +22,7 @@ def main(*args):
     candidates = round.candidates.parse(round)
     candidates = nextround.candidates_eligible.process_candidates(
         poty, candidates)
-    print(nextround.candidates.format(round, candidates))
+    print(nextround.candidates.format(nextround, candidates))
 
 
 if __name__ == '__main__':

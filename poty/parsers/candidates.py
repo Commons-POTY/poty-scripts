@@ -15,6 +15,7 @@ except ImportError:  # PY2
 from werkzeug.datastructures import MultiDict
 
 from poty.candidate import Candidate
+from poty.utils.concurrent import concurrent_map
 from poty.utils.misc import (
     kwargs_setattr, warn_lineignore, if_redirct_get_target)
 
@@ -74,12 +75,15 @@ class CategorizedParser(CandidatesParser):
                     curcat = reobj.groups()
 
     def _format(self, round, candidates, text):
-        categort_dict = MultiDict((c.category, c) for c in candidates)
-        for category in categort_dict:
+        category_dict = MultiDict((c.category, c) for c in candidates)
+        categories = round.candidates_eligible.categories[:]
+        categories += list(sorted(set(category_dict) - set(categories)))
+
+        for category in categories:
             print(self.categorypattern.fmt.format(r=round, c=category),
                   file=text)
             print('<gallery>', file=text)
-            for candidate in sorted(categort_dict.getlist(category),
+            for candidate in sorted(category_dict.getlist(category),
                                     key=self.gallerysortkey):
                 print(self.gallerypattern.fmt.format(r=round, c=candidate),
                       file=text)
@@ -126,6 +130,8 @@ class FPParser(CandidatesParser):
         return '\n\n'.join(round.year.page(page).text for page in self.pages)
 
     def _parse(self, round, text, container):
+        _container = set()
+
         ingallery = False
         curmonth = None
         for line in text.split('\n'):
@@ -154,11 +160,9 @@ class FPParser(CandidatesParser):
                         # a gallery
                         warn_lineignore('poty.parsers.candidates', line)
                         continue
-                    candidate = if_redirct_get_target(
-                        Candidate(reobj.group(1)))
-                    container.add(Candidate(
-                        title=candidate.title(),
-                        id='%s-%02d/%s' % (
+                    _container.add((
+                        reobj.group(1),
+                        '%s-%02d/%s' % (
                             round.year, curmonth, reobj.group(2))))
                 else:
                     reobj = re.match(
@@ -166,3 +170,13 @@ class FPParser(CandidatesParser):
                             '|'.join(filter(None, self.MONTHS)), round.year),
                         line)
                     curmonth = self.MONTHS.index(reobj.group(1))
+
+        def mapfunc(item):
+            title, idstr = item
+            candidate = if_redirct_get_target(
+                Candidate(title))
+            container.add(Candidate(
+                title=candidate.title(),
+                id=idstr))
+
+        concurrent_map(mapfunc, _container)

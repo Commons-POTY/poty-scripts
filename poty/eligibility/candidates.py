@@ -7,6 +7,7 @@ import collections
 import functools
 import logging
 
+from pyquery import PyQuery as pq
 import pywikibot
 from pywikibot.data import api
 
@@ -14,7 +15,7 @@ from poty.candidate import Candidate
 from poty.parsers.votepage import get_voters
 from poty.sites import COMMONS
 from poty.utils.concurrent import concurrent_map
-from poty.utils.misc import kwargs_setattr, get_tops
+from poty.utils.misc import kwargs_setattr, get_tops, if_redirct_get_target
 
 logger = logging.getLogger('poty.eligibility.candidates')
 
@@ -22,12 +23,117 @@ TopCriteria = collections.namedtuple('TopCriteria', 'num key cmt')
 
 
 class FPCategorizer(object):
+    def __init__(self, **kwargs):
+        self.fallback = ('dummy', 'dummy')
+        kwargs_setattr(self, kwargs)
+
     def process_candidates(self, year, candidates):
         for candidate in candidates:
-            candidate.category = ('dummy', 'dummy')
+            candidate.category = self.fallback
             candidate.comment = ''
 
-        # TODO
+        fpc_res_template = pywikibot.Page(
+            COMMONS, 'Template:FPC-results-reviewed')
+
+        def get_category(filepage):
+            fpcs = set()
+
+            for fpc_page in filepage.usingPages():
+                if not fpc_page.title().startswith(
+                        'Commons:Featured picture candidates/'):
+                    continue
+
+                for template, params in fpc_page.templatesWithParams():
+                    if template == fpc_res_template:
+                        if 'featured=yes' in params:
+                            fpcs.add(fpc_page)
+                        break
+
+            if len(fpcs) == 1:
+                fpc_page = fpcs.pop()
+            elif len(fpcs) == 0:
+                return None  # gotta handle these manually
+            else:  # Argh!
+                # HACK: HTML scraping the FPC link
+                html = filepage.getImagePageHtml()
+                d = pq(html)
+                e = d('#assessments '
+                      'a[title^="Commons:Featured picture candidates/"]')
+                assert len(e) == 1
+
+                title = e.attr('title')
+                fpc_page = if_redirct_get_target(
+                    pywikibot.Page(COMMONS, title))
+                assert fpc_page in fpcs
+
+            for template, params in fpc_page.templatesWithParams():
+                if template == fpc_res_template:
+                    for param in params:
+                        if param.startswith('category='):
+                            return param[len('category='):].replace('_', ' ')
+
+        def singular(words):
+            exceptions = {'glass', 'ous'}
+
+            words = words.split(' ')
+            for i, word in enumerate(words):
+                if not any(word.endswith(exception)
+                           for exception in exceptions):
+                    if word.endswith('ies'):
+                        words[i] = word[:-3] + 'y'
+                    elif word.endswith('s'):
+                        words[i] = word[:-1]
+
+            return ' '.join(words)
+
+        token_overrides = {
+            'natural': 'nature',
+            'animated': 'animation',
+        }
+
+        def poty_tokenizer(catstr):
+            catstr = catstr.lower()
+
+            cats = [catstr]
+            for split_key in [', ', ' and ']:
+                cats = [cat.split(split_key) for cat in cats]
+                cats = sum(cats, [])
+
+            cats = [singular(cat.strip()) for cat in cats]
+            cats = [cat[len('other '):] if cat.startswith('other ') else cat
+                    for cat in cats]
+            cats = [cat[:-len(' view')] if cat.endswith(' view') else cat
+                    for cat in cats]
+            cats = [token_overrides[cat] if cat in token_overrides else cat
+                    for cat in cats]
+            cats = frozenset(filter(None, cats))
+
+            return cats
+
+        poty_tokens = {}
+        for category in self.categories:
+            for token in poty_tokenizer(', '.join(category)):
+                poty_tokens[token] = category
+
+        def fp_tokenizer(catstr):
+            catstr = catstr.replace('#', '/')
+            return map(poty_tokenizer, catstr.split('/')[::-1])
+
+        def match(catstr):
+            if catstr is not None:
+                for tokens in fp_tokenizer(catstr):
+                    for token in tokens:
+                        if token in poty_tokens:
+                            return token, poty_tokens[token]
+            return None, self.fallback
+
+        def mapfunc(candidate):
+            cat = get_category(candidate)
+            token, target = match(cat)
+            candidate.comment = '%s => %s => %s' % (cat, token, target)
+            candidate.category = target
+
+        concurrent_map(mapfunc, candidates)
 
         return candidates
 
