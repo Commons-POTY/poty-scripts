@@ -48,7 +48,6 @@ class POTY(int):
                 log.data['params']['olduser']: log.data['params']['newuser']
                 for log in META.logevents(
                     'gblrename',
-                    start=pywikibot.Timestamp(self + 2, 1, 1),
                     end=pywikibot.Timestamp(self + 1, 1, 1)
                 )
                 if 'params' in log.data  # some can be deleted

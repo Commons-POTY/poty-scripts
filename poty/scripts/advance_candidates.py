@@ -10,7 +10,7 @@ from poty.poty import POTY
 
 def main(*args):
     parser = argparse.ArgumentParser(
-        description='Graduate POTY candidates. Vote counting, sorting, etc.')
+        description='Advance POTY candidates. Vote counting, sorting, etc.')
     parser.add_argument('year', type=int,
                         help='the year of POTY')
     parser.add_argument('round', type=int,
