@@ -25,16 +25,18 @@ def main(*args):
     for candidate in candidates:
         votepage = poty.subpage(nextround.candidates_eligible.page.format(
             c=candidate.nons_title))
-        votepage.text = """\
+        newtext = """\
 {{autotranslate|base=POTY%d/header}}{{-}}{{POTY%d/Roundheader}}
 
 == {{int:Ratinghistory-table-votes}} ==
 """ % (poty, poty)
-        votepage.save(
-            'Create POTY R%d vote page for %s' % (
-                round.num,
-                candidate.title(asLink=True)),
-            watch='nochange')
+        if votepage.text.strip() != newtext.strip():
+            votepage.text = newtext
+            votepage.save(
+                'Create POTY R%d vote page for %s' % (
+                    round.num,
+                    candidate.title(asLink=True)),
+                watch='nochange')
 
 
 if __name__ == '__main__':
