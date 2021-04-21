@@ -145,7 +145,7 @@ class VoteTally(object):
 
     def process_candidates(self, year, candidates):
         candidates = list(candidates)
-        voters = concurrent_map(functools.partial(get_voters, self, year),
+        voters = map(functools.partial(get_voters, self, year),
                                 candidates)
 
         # not using MultiDicts here because we can neither remove a pair easily
