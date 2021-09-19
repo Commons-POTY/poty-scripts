@@ -1,5 +1,6 @@
-import re
 import collections
+import re
+import traceback
 
 import pywikibot
 import pywikibot.pagegenerators
@@ -41,11 +42,22 @@ for prefix in prefixes:
         if lang != 'en':
             continue
 
-        for old_group, langdict in old_pages_data[sourcepage.replace(CUR_YEAR, PREV_YEAR)].items():
+        year_fix = False
+        old_page_groups = old_pages_data[sourcepage.replace(CUR_YEAR, PREV_YEAR)]
+
+        for old_group, langdict in old_page_groups.items():
             if langdict['en'].text == new_page.text:
                 break
         else:
-            continue
+            if CUR_YEAR not in new_page.text:
+                continue
+
+            for old_group, langdict in old_page_groups.items():
+                if langdict['en'].text == new_page.text.replace(CUR_YEAR, PREV_YEAR):
+                    year_fix = True
+                    break
+            else:
+                continue
 
         for lang, translation in langdict.items():
             new_title = 'Translations:{}/{}/{}'.format(sourcepage, group, lang)
@@ -54,7 +66,16 @@ for prefix in prefixes:
             if new_page.exists():
                 continue
 
-            new_page.text = translation.text
+            if year_fix:
+                if PREV_YEAR not in translation.text:
+                    continue
+
+                new_page.text = translation.text.replace(PREV_YEAR, CUR_YEAR)
+            else:
+                new_page.text = translation.text
 
             print(new_page, new_page.text)
-            new_page.save(summary='Copying translations from {}, original was at [[{}]]'.format(PREV_YEAR, translation.title()))
+            try:
+                new_page.save(summary='Copying translations from {}, original was at [[{}]]'.format(PREV_YEAR, translation.title()))
+            except pywikibot.Error:
+                traceback.print_exc()
